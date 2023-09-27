@@ -5,7 +5,6 @@ import urllib3
 
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
-from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
 warnings.filterwarnings("ignore")
@@ -20,6 +19,22 @@ images_directory = os.path.join(current_directory, 'images')
 os.makedirs(images_directory, exist_ok=True)
 # /Users/viktoriafedorova/Desktop/Devman/local_library/images
 url = "https://tululu.org/b9/"
+
+
+def get_comments(url):
+    response = requests.get(url, verify=False, allow_redirects=False)
+    soup = BeautifulSoup(response.text, "lxml")
+    comments = soup.find_all("div", class_="texts")
+    comment_texts = []
+    for comment in comments:
+        full_comment = comment.get_text()
+        full_comment.split(')')
+        comment_text = (full_comment.split(')'))[1].strip()
+        comment_texts.append(comment_text)
+    return comment_texts
+
+
+# print(get_comments(url))
 
 
 def get_bookimage(url):
@@ -45,10 +60,6 @@ def download_bookimage(url, folder='images'):
         folder, image_name)
     with open(filename, 'wb') as file:
         file.write(response.content)
-
-
-# book_image_url = get_bookimage(url)
-# print(download_bookimage(book_image_url))
 
 
 def get_book_title(url):
@@ -82,12 +93,11 @@ for book in range(1, 11):
     books_filepath = download_txt(download_url, book_title)
     response = requests.get(download_url, verify=False, allow_redirects=False)
     book_image_url = get_bookimage(info_url)
-
+    print(get_comments(info_url))
     if book_image_url == "No picture available":
         print(f"The book {book_title} has no picture.")
     else:
         download_bookimage(book_image_url)
-
 
     # try:
     #     check_for_redirect(response)
