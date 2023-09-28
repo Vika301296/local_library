@@ -7,20 +7,27 @@ from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlsplit
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 url = "https://tululu.org/b9/"
 
 
 def check_for_redirect(response):
     if response.status_code != 200:
+        print(f"Redirect detected for {response.url}")
         raise requests.HTTPError
 
 
 def parse_book_page(url):
     try:
         response = requests.get(url, verify=False, allow_redirects=False)
+        check_for_redirect(response)
+        # status_code = response.status_code
+        # print(f'Status code for {url} - {status_code}')
         soup = BeautifulSoup(response.text, "lxml")
         genres = (soup.find(
             "span", class_="d_book").find('a')['title']).split('-')[0]
+        # print(f'Genres are {genres} for book {url}')
         comments = soup.find_all("div", class_="texts")
         comment_texts = []
         for comment in comments:
@@ -28,6 +35,7 @@ def parse_book_page(url):
             full_comment.split(')')
             comment_text = (full_comment.split(')'))[1].strip()
             comment_texts.append(comment_text)
+        # print(f'Comments are {comment_texts} for book {url}')
         book_title_and_author = soup.find("h1").text.split("::")
         book_title, book_author = (book_title_and_author[0].strip(),
                                    book_title_and_author[1].strip())
@@ -35,6 +43,7 @@ def parse_book_page(url):
                      'author': f'{book_author}',
                      'genres': f'{genres}',
                      'comments': f'{comment_texts}'}
+        # print(f'Book_info for {url} is {book_info}')
         return book_info
     except requests.HTTPError:
         print(f"HTTPError for book {url}")
@@ -79,17 +88,16 @@ for book in range(1, 11):
         book_info = parse_book_page(info_url)
 
         if book_info is not None:
+            print(f"Successfully parsed book {book}")
             # Continue with the rest of your code here
             pass
         else:
             print(f"Skipping book {book} due to error.")
 
-    except requests.HTTPError:
-        print(f"HTTPError for book {book}")
-        continue  # Continue to the next book
     except Exception as e:
         print(f"Error for book {book}: {e}")
         continue  # Continue to the next book
+
 
     # book_title = get_book_title(info_url)
     # books_filepath = download_txt(download_url, book_title)
