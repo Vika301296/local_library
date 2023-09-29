@@ -1,3 +1,4 @@
+import argparse
 import os
 import requests
 import warnings
@@ -18,16 +19,27 @@ def check_for_redirect(response):
         raise requests.HTTPError
 
 
+def download_comments(url, folder='comments'):
+    response = requests.get(url, verify=False, allow_redirects=False)
+    check_for_redirect(response)
+    soup = BeautifulSoup(response.text, "lxml")
+    comments = soup.find_all("div", class_="texts")
+    book_title = (soup.find("h1").text.split("::"))[0].strip()
+    for comment in comments:
+        full_comment = comment.get_text()
+        full_comment.split(')')
+        comment_text = (full_comment.split(')'))[1].strip()
+        with open(f'{book_title}.txt', 'w', encoding='utf-8') as file:
+            file.write(comment_text + '\n')
+
+
 def parse_book_page(url):
     try:
         response = requests.get(url, verify=False, allow_redirects=False)
         check_for_redirect(response)
-        # status_code = response.status_code
-        # print(f'Status code for {url} - {status_code}')
         soup = BeautifulSoup(response.text, "lxml")
         genres = (soup.find(
             "span", class_="d_book").find('a')['title']).split('-')[0]
-        # print(f'Genres are {genres} for book {url}')
         comments = soup.find_all("div", class_="texts")
         comment_texts = []
         for comment in comments:
@@ -35,7 +47,6 @@ def parse_book_page(url):
             full_comment.split(')')
             comment_text = (full_comment.split(')'))[1].strip()
             comment_texts.append(comment_text)
-        # print(f'Comments are {comment_texts} for book {url}')
         book_title_and_author = soup.find("h1").text.split("::")
         book_title, book_author = (book_title_and_author[0].strip(),
                                    book_title_and_author[1].strip())
@@ -43,11 +54,9 @@ def parse_book_page(url):
                      'author': f'{book_author}',
                      'genres': f'{genres}',
                      'comments': f'{comment_texts}'}
-        # print(f'Book_info for {url} is {book_info}')
         return book_info
     except requests.HTTPError:
         print(f"HTTPError for book {url}")
-        return None  # Return None if there's an error
 
 
 def get_bookimage(url):
@@ -69,16 +78,24 @@ def download_bookimage(url, folder='images'):
     image_name = os.path.basename(urlsplit(
         url, scheme='', allow_fragments=True)[2])
     response = requests.get(url, verify=False, allow_redirects=False)
+    check_for_redirect(response)
     filename = os.path.join(
         folder, image_name)
     with open(filename, 'wb') as file:
         file.write(response.content)
 
 
-def download_txt(url, filename, folder="books/"):
+def download_book(url, filename, folder="books/"):
     filename = sanitize_filename(filename)
     filepath = os.path.join(folder, f"{filename}.txt")
-    return filepath
+    response = requests.get(url, verify=False, allow_redirects=False)
+    check_for_redirect(response)
+    with open(filepath, 'wb') as file:
+        file.write(response.content)
+
+
+def main():
+    pass
 
 
 for book in range(1, 11):
@@ -97,6 +114,14 @@ for book in range(1, 11):
     except Exception as e:
         print(f"Error for book {book}: {e}")
         continue  # Continue to the next book
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--start_id', help='С какой книги начнется скачивание', default=1)
+    parser.add_argument(
+        '--end_id', help='На какой книге закончится скачивание', default=11)
+    args = parser.parse_args()
 
 
     # book_title = get_book_title(info_url)
