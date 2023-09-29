@@ -1,16 +1,15 @@
 import argparse
 import os
 import requests
-import warnings
 import urllib3
 
 from bs4 import BeautifulSoup
-from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlsplit
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 url = "https://tululu.org/b9/"
+download_url = 'https://tululu.org/txt.php?id=9'
 
 
 def check_for_redirect(response):
@@ -25,11 +24,13 @@ def download_comments(url, folder='comments'):
     soup = BeautifulSoup(response.text, "lxml")
     comments = soup.find_all("div", class_="texts")
     book_title = (soup.find("h1").text.split("::"))[0].strip()
-    for comment in comments:
-        full_comment = comment.get_text()
-        full_comment.split(')')
-        comment_text = (full_comment.split(')'))[1].strip()
-        with open(f'{book_title}.txt', 'w', encoding='utf-8') as file:
+    os.makedirs(folder, exist_ok=True)
+    filename = os.path.join(folder, f'{book_title}.txt')
+    with open(filename, 'w', encoding='utf-8') as file:
+        for comment in comments:
+            full_comment = comment.get_text()
+            full_comment.split(')')
+            comment_text = (full_comment.split(')'))[1].strip()
             file.write(comment_text + '\n')
 
 
@@ -86,7 +87,6 @@ def download_bookimage(url, folder='images'):
 
 
 def download_book(url, filename, folder="books/"):
-    filename = sanitize_filename(filename)
     filepath = os.path.join(folder, f"{filename}.txt")
     response = requests.get(url, verify=False, allow_redirects=False)
     check_for_redirect(response)
@@ -94,51 +94,26 @@ def download_book(url, filename, folder="books/"):
         file.write(response.content)
 
 
-def main():
-    pass
-
-
-for book in range(1, 11):
-    download_url = f'https://tululu.org/txt.php?id={book}'
-    info_url = f'https://tululu.org/b{book}/'
-    try:
-        book_info = parse_book_page(info_url)
-
-        if book_info is not None:
-            print(f"Successfully parsed book {book}")
-            # Continue with the rest of your code here
-            pass
-        else:
-            print(f"Skipping book {book} due to error.")
-
-    except Exception as e:
-        print(f"Error for book {book}: {e}")
-        continue  # Continue to the next book
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--start_id', help='С какой книги начнется скачивание', default=1)
+        'start_id', type=int,
+        help='С какой книги начнется скачивание', default=1)
     parser.add_argument(
-        '--end_id', help='На какой книге закончится скачивание', default=11)
+        'end_id', type=int,
+        help='На какой книге закончится скачивание', default=11)
     args = parser.parse_args()
-
-
-    # book_title = get_book_title(info_url)
-    # books_filepath = download_txt(download_url, book_title)
-    # response = requests.get(download_url, verify=False, allow_redirects=False)
-    # book_image_url = get_bookimage(info_url)
-    # if book_image_url == "No picture available":
-    #     print(f"The book {book_title} has no picture.")
-    # else:
-    #     download_bookimage(book_image_url)
-
-    # try:
-    #     genres = get_genres(info_url)
-    #     if genres is not None:
-    #         # Continue with the rest of your code here
-    #         pass
-    #     else:
-    #         print(f"Skipping book {book} due to error.")
-    # except Exception as e:
-    #     print(f"Error for book {book}: {e}")
+    try:
+        for book in range(args.start_id, args.end_id + 1):
+            download_url = f'https://tululu.org/txt.php?id={book}'
+            info_url = f'https://tululu.org/b{book}/'
+            response = requests.get(
+                info_url, verify=False, allow_redirects=False)
+            if response.status_code == 302:
+                continue
+            check_for_redirect(response)
+            soup = BeautifulSoup(response.text, "lxml")
+            book_title = (soup.find("h1").text.split("::"))[0].strip()
+            download_book(download_url, book_title)
+    except Exception as e:
+        print(f'Something went wrong: {e}')
