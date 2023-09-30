@@ -95,7 +95,8 @@ def download_book(url, filename, folder="books/"):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='Downloads books and their covers from tululu.org')
     parser.add_argument(
         'start_id', type=int,
         help='С какой книги начнется скачивание', default=1)
