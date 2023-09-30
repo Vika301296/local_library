@@ -13,7 +13,7 @@ download_url = 'https://tululu.org/txt.php?id=9'
 
 
 def check_for_redirect(response):
-    if response.status_code != 200:
+    if response.history:
         print(f"Redirect detected for {response.url}")
         raise requests.HTTPError
 
@@ -86,9 +86,10 @@ def download_bookimage(url, folder='images'):
         file.write(response.content)
 
 
-def download_book(url, filename, folder="books/"):
+def download_book(url, payload, filename, folder="books/"):
     filepath = os.path.join(folder, f"{filename}.txt")
     response = requests.get(url, verify=False, allow_redirects=False)
+    response.raise_for_status()
     check_for_redirect(response)
     with open(filepath, 'wb') as file:
         file.write(response.content)
@@ -106,15 +107,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         for book in range(args.start_id, args.end_id + 1):
-            download_url = f'https://tululu.org/txt.php?id={book}'
-            info_url = f'https://tululu.org/b{book}/'
+            download_url = 'https://tululu.org/txt.php'
+            download_payload = {'id': book}
+            book_info_url = f'https://tululu.org/b{book}/'
             response = requests.get(
-                info_url, verify=False, allow_redirects=False)
+                book_info_url, verify=False, allow_redirects=False)
+            response.raise_for_status()
             if response.status_code == 302:
                 continue
             check_for_redirect(response)
             soup = BeautifulSoup(response.text, "lxml")
             book_title = (soup.find("h1").text.split("::"))[0].strip()
-            download_book(download_url, book_title)
+            download_book(download_url, download_payload, book_title)
+            download_bookimage(get_bookimage(book_info_url))
+            download_comments(book_info_url)
     except Exception as e:
         print(f'Something went wrong: {e}')
