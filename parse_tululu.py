@@ -8,14 +8,10 @@ from urllib.parse import urljoin, urlsplit
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-url = "https://tululu.org/b9/"
-download_url = 'https://tululu.org/txt.php?id=9'
-
 
 def check_for_redirect(response):
     if response.history:
-        print(f"Redirect detected for {response.url}")
-        raise requests.HTTPError
+        raise requests.HTTPError('Redirect detected')
 
 
 def download_comments(url, folder='comments'):
@@ -121,5 +117,7 @@ if __name__ == "__main__":
             download_book(download_url, download_payload, book_title)
             download_bookimage(get_bookimage(book_info_url))
             download_comments(book_info_url)
-    except Exception as e:
-        print(f'Something went wrong: {e}')
+    except requests.ConnectionError:
+        print('Connection Error')
+    except requests.HTTPError as e:
+        print(f'HTTPError: {e}')
