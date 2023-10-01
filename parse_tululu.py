@@ -105,18 +105,16 @@ if __name__ == "__main__":
         for book in range(args.start_id, args.end_id + 1):
             download_url = 'https://tululu.org/txt.php'
             download_payload = {'id': book}
-            book_info_url = f'https://tululu.org/b{book}/'
+            book_page = f'https://tululu.org/b{book}/'
             response = requests.get(
-                book_info_url, verify=False, allow_redirects=False)
+                book_page, verify=False, allow_redirects=False)
             response.raise_for_status()
-            if response.status_code == 302:
-                continue
             check_for_redirect(response)
             soup = BeautifulSoup(response.text, "lxml")
             book_title = (soup.find("h1").text.split("::"))[0].strip()
             download_book(download_url, download_payload, book_title)
-            download_bookimage(get_bookimage(book_info_url))
-            download_comments(book_info_url)
+            download_bookimage(get_bookimage(book_page))
+            download_comments(book_page)
     except requests.ConnectionError:
         print('Connection Error')
     except requests.HTTPError as e:
