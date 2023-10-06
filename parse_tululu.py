@@ -16,7 +16,6 @@ def check_for_redirect(response):
 
 
 def parse_book_page(response):
-    check_for_redirect(response)
     soup = BeautifulSoup(response.text, "lxml")
     all_genres = [genre.text for genre in soup.find(
         'span', class_='d_book').find_all('a')]
